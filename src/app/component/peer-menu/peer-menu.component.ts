@@ -1,6 +1,5 @@
 import { AfterViewInit, Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 
-import { ImageStorage } from '@udonarium/core/file-storage/image-storage';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
 import { PeerContext } from '@udonarium/core/system/network/peer-context';
 import { EventSystem, Network } from '@udonarium/core/system';
@@ -52,7 +51,7 @@ export class PeerMenuComponent implements OnInit, OnDestroy, AfterViewInit {
     this.modalService.open<string>(FileSelecterComponent).then(value => {
       if (!this.myPeer || !value) return;
       this.myPeer.imageIdentifier = value;
-      localStorage.setItem("PlayerIcon", ImageStorage.instance.get(value).url);
+      localStorage.setItem("PlayerIcon", value);
     });
   }
 
@@ -168,12 +167,16 @@ export class PeerMenuComponent implements OnInit, OnDestroy, AfterViewInit {
   }
   isWatchMode(): boolean { return Network.isSelfWatchMode(); }
   test(){
-    console.log("TEST");
+    console.log("TEST ============");
+    //localStorage.setItem("Objects", JSON.stringify(arr));
+    //console.log(localStorage.getItem("SummarySetting"));
+  }
+  test2() {
+    localStorage.clear();
   }
   clearGameObject() {
     for (let object of ObjectStore.instance.getAllGameObject()) {
-      if(object["location"]!=null || object.aliasName=="chat-tab" || object.aliasName=="game-table")
-        object.destroy();
+      if(object["location"]!=null || object.aliasName=="chat-tab" || object.aliasName=="game-table") object.destroy();
     }
   }
 }

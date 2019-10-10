@@ -49,6 +49,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private immediateUpdateTimer: NodeJS.Timer = null;
   private lazyUpdateTimer: NodeJS.Timer = null;
   private openPanelCount: number = 0;
+  private autoSave: boolean = false;
 
   constructor(
     private modalService: ModalService,
@@ -60,6 +61,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     private ngZone: NgZone
   ) {
 
+    let self = this;
     this.ngZone.runOutsideAngular(() => {
       EventSystem;
       Network;
@@ -78,6 +80,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
 
     DataSummarySetting.instance.initialize();
 
+    this.autoSave = (localStorage.getItem("AutoSave")=="true");
+
     let diceBot: DiceBot = new DiceBot('DiceBot');
     diceBot.initialize();
 
@@ -87,15 +91,40 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     let soundEffect: SoundEffect = new SoundEffect('SoundEffect');
     soundEffect.initialize();
 
-    let chatTab: ChatTab = new ChatTab();
-    chatTab.name = '主要';
-    chatTab.initialize();
+    let chatTab: ChatTab;
+    if(localStorage.getItem("ChatTab")){
+      let chattab_arr = JSON.parse(localStorage.getItem("ChatTab"));
+      for(let tab of chattab_arr){
+        chatTab = new ChatTab();
+        chatTab.name = tab.name;
+        chatTab.initialize();
 
-    chatTab = new ChatTab();
-    chatTab.name = '閒聊';
-    chatTab.initialize();
+        for(let msg of tab.children){
+          let msg_context = {
+            from: msg["from"],
+            timestamp: msg["timestamp"],
+            imageIdentifier: msg["imageIdentifier"],
+            tag: '',
+            name: msg["name"],
+            text: msg["text"],
+            color: msg["color"]
+          };
+          chatTab.easyAppendMessage(msg_context);
+        }
+      }
+    }
+    else{
+      chatTab = new ChatTab();
+      chatTab.name = '主要';
+      chatTab.initialize();
 
-    let fileContext = ImageFile.createEmpty('none_icon').toContext();
+      chatTab = new ChatTab();
+      chatTab.name = '閒聊';
+      chatTab.initialize();
+    }
+    
+
+    let fileContext = ImageFile.createEmpty('./assets/images/ic_account_circle_black_24dp_2x.png').toContext();
     fileContext.url = './assets/images/ic_account_circle_black_24dp_2x.png';
     let noneIconImage = ImageStorage.instance.add(fileContext);
 
@@ -136,9 +165,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
     PeerCursor.myCursor.name = (localStorage.getItem("PlayerNickname"))? localStorage.getItem("PlayerNickname"): '玩家';
     if(localStorage.getItem("PlayerIcon")){
       let url = localStorage.getItem("PlayerIcon");
-      if (!ImageStorage.instance.get(url))
-        ImageStorage.instance.add(url);
-      PeerCursor.myCursor.imageIdentifier = url;
+      PeerCursor.myCursor.imageIdentifier = ImageStorage.instance.loadImageFromUrl(url);
     }
     else
       PeerCursor.myCursor.imageIdentifier = noneIconImage.identifier;
@@ -177,13 +204,17 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       .on('DISCONNECT_PEER', event => {
         //
       });
+
+    window.onbeforeunload = function(){
+      if(localStorage.getItem("AutoSave")=="true") self.saveLocalCache();
+    }
   }
 
   ngAfterViewInit() {
     PanelService.defaultParentViewContainerRef = ModalService.defaultParentViewContainerRef = ContextMenuService.defaultParentViewContainerRef = this.modalLayerViewContainerRef;
     setTimeout(() => {
       this.panelService.open(PeerMenuComponent, { width: 500, height: 450, left: 100 });
-      this.panelService.open(ChatWindowComponent, { width: 700, height: 400, left: 0, top: 450 });
+      this.panelService.open(ChatWindowComponent, { width: 700, height: 400, left: 100, top: 450 });
     }, 0);
   }
 
@@ -235,7 +266,7 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   save() {
     let roomName = Network.peerContext && 0 < Network.peerContext.roomName.length
       ? Network.peerContext.roomName
-      : 'ルームデータ';
+      : 'RoomData';
     this.saveDataService.saveRoom(roomName);
   }
 
@@ -262,4 +293,147 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       }, 100);
     }
   }
+
+  private changeAutoSave(target){
+    if(target.checked){
+      localStorage.setItem("AutoSave", "true");
+      //this.saveLocalCache();
+    }
+    else{
+      localStorage.setItem("AutoSave", "false");
+      console.log("Clear all Cahce");
+      let gameObject_key = ["SummarySetting", "ChatTab", "GameTable", "GameCharacter", "TableMask", "Terrain", "TextNote", "DiceSymbol", "Card", "CardStack"];
+      for(let key of gameObject_key){
+        localStorage.removeItem(key);
+      }
+    }
+  }
+
+  private saveLocalCache(){
+    console.log("SAVE");
+    let objects_arr={}, arr=[];
+    for(let object of ObjectStore.instance.getAllGameObject()){
+      switch(object.aliasName){
+        case "summary-setting":
+          localStorage.setItem("SummarySetting", object["dataTag"]);
+          break;
+        case "game-table":
+        case "character":
+        case "table-mask":
+        case "terrain":
+        case "text-note":
+        case "dice-symbol":
+        case "chat-tab":
+        case "card-stack":
+          if(!objects_arr[object.aliasName]) objects_arr[object.aliasName] = [];
+          objects_arr[object.aliasName].push(this.getCacheObject( object ));
+          break;
+        case "card":
+          if(object["parentIdentifier"]!="") break;
+          if(!objects_arr["card"]) objects_arr["card"] = [];
+          objects_arr["card"].push(this.getCacheObject( object ));
+          break;
+        default:
+          break;
+      }
+      //arr.push(object);
+    }
+    
+    // Set Local Storage
+    this.updateLocalStorage(objects_arr, "chat-tab", "ChatTab");
+    this.updateLocalStorage(objects_arr, "game-table", "GameTable");
+    this.updateLocalStorage(objects_arr, "character", "GameCharacter");
+    this.updateLocalStorage(objects_arr, "table-mask", "TableMask");
+    this.updateLocalStorage(objects_arr, "terrain", "Terrain");
+    this.updateLocalStorage(objects_arr, "text-note", "TextNote");
+    this.updateLocalStorage(objects_arr, "dice-symbol", "DiceSymbol");
+    this.updateLocalStorage(objects_arr, "card", "Card");
+    this.updateLocalStorage(objects_arr, "card-stack", "CardStack");
+  }
+
+  private updateLocalStorage(save_obj: Object, saveObj_key: string, localStorage_key: string ){
+    if(save_obj[saveObj_key])
+      localStorage.setItem(localStorage_key, JSON.stringify(save_obj[saveObj_key]));
+    else
+      localStorage.removeItem(localStorage_key);
+  }
+
+  private getCacheObject(object): Object {
+    let key_arr, temp_obj;
+    switch(object.aliasName){
+      case "chat":
+        key_arr = ["form", "name", "imageIdentifier", "timestamp", "color", "text"];
+        return this.getObjectWithSpecificAttribute( object, key_arr );
+      case "chat-tab":
+        temp_obj = this.getObjectWithSpecificAttribute( object, ["name"] );
+        temp_obj["children"] = [];
+        for(let msg of object["children"])
+          temp_obj["children"].push( this.getCacheObject(msg) );
+        return temp_obj;
+      case "chat-palette":
+        key_arr = ["color", "dicebot", "value"];
+        return this.getObjectWithSpecificAttribute( object, key_arr );
+      case "TableSelecter":
+        key_arr = ["gridShow", "gridSnap"];
+        return this.getObjectWithSpecificAttribute( object, key_arr );
+      case "game-table":
+        key_arr = ["name", "width", "height", "gridSize", "imageIdentifier", "backgroundImageIdentifier", 
+                    "backgroundFilterType", "selected", "gridType", "gridColor"];
+        return this.getObjectWithSpecificAttribute( object, key_arr );
+      case "character":
+        key_arr = ["location", "posZ", "roll", "rotate"];
+        temp_obj = this.getObjectWithSpecificAttribute( object, key_arr, true );
+        temp_obj["chatPalette"] = this.getCacheObject(object["chatPalette"]);
+        return temp_obj;
+      case "table-mask":
+        key_arr = ["location", "posZ", "isLock"];
+        return this.getObjectWithSpecificAttribute( object, key_arr, true );
+      case "terrain":
+        key_arr = ["location", "mode", "posZ", "rotate", "isLocked"];
+        return this.getObjectWithSpecificAttribute( object, key_arr, true );
+      case "text-note":
+        key_arr = ["location", "posZ", "rotate"];
+        return this.getObjectWithSpecificAttribute( object, key_arr, true );
+      case "dice-symbol":
+        key_arr = ["location", "posZ", "rotate", "face", "owner"];
+        return this.getObjectWithSpecificAttribute( object, key_arr, true );
+      case "card":
+        key_arr = ["location", "posZ", "rotate", "state", "owner"];
+        return this.getObjectWithSpecificAttribute( object, key_arr, true );
+      case "card-stack":
+        key_arr = ["location", "posZ", "rotate", "isShowTotal", "owner"];
+        temp_obj = this.getObjectWithSpecificAttribute( object, key_arr, true );
+        temp_obj["children"] = [];
+        for(let msg of object["cardRoot"]["children"])
+          temp_obj["children"].push( this.getCacheObject(msg) );
+        return temp_obj;
+    }
+  }
+
+  private getObjectWithSpecificAttribute (object: Object, key_arr: Array<string>, isTableObjectBasic?: boolean): Object{
+    var obj = {};
+    for(let key of key_arr) obj[key] = object[key];
+    if(isTableObjectBasic){
+      obj["commonDataElement"] = this.getDataElementObject(object["commonDataElement"]);
+      obj["detailDataElement"] = this.getDataElementObject(object["detailDataElement"]);
+      obj["imageDataElement"]  = this.getDataElementObject(object["imageDataElement"]);
+    }
+    return obj;
+  }
+  private getDataElementObject(object: Object): Object{
+    let obj = {
+      name: object["name"],
+      type: object["type"],
+      value: object["value"],
+      currentValue: object["currentValue"]
+    };
+    if(object["children"].length>0){
+      obj["children"] = [];
+      for(let child of object["children"]){
+        obj["children"].push(this.getDataElementObject(child));
+      }
+    }
+    return obj;
+  }
+
 }
