@@ -32,8 +32,8 @@ export class GameTableMaskComponent implements OnInit, OnDestroy, AfterViewInit 
   @Input() is3D: boolean = false;
 
   get name(): string { return this.gameTableMask.name; }
-  get width(): number { return this.adjustMinMaxBounds(this.gameTableMask.width); }
-  get height(): number { return this.adjustMinMaxBounds(this.gameTableMask.height); }
+  get width(): number { this.checkDestroyingSize(); return this.adjustMinMaxBounds(this.gameTableMask.width); }
+  get height(): number { this.checkDestroyingSize(); return this.adjustMinMaxBounds(this.gameTableMask.height); }
   get opacity(): number { return this.gameTableMask.opacity; }
   get imageFile(): ImageFile { return this.gameTableMask.imageFile; }
   get isLock(): boolean { return this.gameTableMask.isLock; }
@@ -153,6 +153,12 @@ export class GameTableMaskComponent implements OnInit, OnDestroy, AfterViewInit 
 
   private adjustMinMaxBounds(value: number, min: number = 0, max: number = 50): number {
     return value < min ? min : value > max ? max : value;
+  }
+  private checkDestroyingSize(){
+    let destroyCount = 0;
+    if(this.gameTableMask.height<=0) destroyCount++;
+    if(this.gameTableMask.width <=0) destroyCount++;
+    if(destroyCount>=2) this.gameTableMask.destroy();
   }
 
   private showDetail(gameObject: GameTableMask) {
