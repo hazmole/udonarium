@@ -51,6 +51,8 @@ export class AppComponent implements AfterViewInit, OnDestroy {
   private openPanelCount: number = 0;
   private autoSave: boolean = false;
 
+  isSubView: boolean = false;
+
   constructor(
     private modalService: ModalService,
     private panelService: PanelService,
@@ -261,6 +263,10 @@ export class AppComponent implements AfterViewInit, OnDestroy {
       console.log('openPanelCount:', this.openPanelCount);
       this.panelService.open(component, option);
     }
+  }
+
+  switchToSub(forceView: boolean) {
+    this.isSubView = forceView;
   }
 
   save() {

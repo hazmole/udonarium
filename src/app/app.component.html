@@ -2,7 +2,7 @@
   <game-table></game-table>
 </div>
 <ui-panel [top]="0" [left]="0" [width]="100" [height]="networkService.isSelfWatchMode()? 250: 510" [title]="'功能表'" [root]="true">
-  <nav>
+  <nav *ngIf="!isSubView || networkService.isSelfWatchMode()">
     <ul>
       <li>
         <a routerLink="/" routerLinkActive="active">
@@ -50,36 +50,39 @@
           <div>音樂</div>
         </a>
       </li>
-      <li (click)="open('GameCharacterGeneratorComponent')" *ngIf="!networkService.isSelfWatchMode()">
-        <a routerLink="/" routerLinkActive="active">
-          <div><i class="material-icons icon-size">nature_people</i></div>
-          <div>角色創建</div>
-        </a>
-      </li>
       <li (click)="open('GameObjectInventoryComponent')" *ngIf="!networkService.isSelfWatchMode()">
         <a routerLink="/" routerLinkActive="active">
           <div><i class="material-icons icon-size">folder_shared</i></div>
           <div>管理倉庫</div>
         </a>
       </li>
-      <!--
-        <li (click)="open('GameObjectInventoryComponent')">
-          <a routerLink="/" routerLinkActive="active">
-            <div><i class="material-icons icon-size">folder</i></div>
-            <div>あなたのインベントリ</div>
-          </a>
-        </li>
-        <li>
-          <a routerLink="/" routerLinkActive="active">
-            <div><i class="material-icons">local_florist</i></div>
-            <div>墓場</div>
-          </a>
-        </li>
-         -->
       <li (click)="save()">
         <a routerLink="/" routerLinkActive="active">
           <div><i class="material-icons">sd_storage</i></div>
           <div>儲存房間</div>
+        </a>
+      </li>
+      <li (click)="switchToSub(true)" *ngIf="!networkService.isSelfWatchMode()">
+        <a routerLink="/" routerLinkActive="active">
+          <div><i class="material-icons icon-size">more_vert</i></div>
+          <div>其他設定</div>
+        </a>
+      </li>
+    </ul>
+  </nav>
+  <nav *ngIf="isSubView && !networkService.isSelfWatchMode()">
+    <ul>
+      <li (click)="switchToSub(false)">
+        <a routerLink="/" routerLinkActive="active">
+          <div><i class="material-icons">keyboard_capslock</i></div>
+          <div>回上層</div>
+        </a>
+      </li>
+      <hr>
+      <li (click)="open('GameCharacterGeneratorComponent')" *ngIf="!networkService.isSelfWatchMode()">
+        <a routerLink="/" routerLinkActive="active">
+          <div><i class="material-icons icon-size">nature_people</i></div>
+          <div>角色生成器</div>
         </a>
       </li>
     </ul>
