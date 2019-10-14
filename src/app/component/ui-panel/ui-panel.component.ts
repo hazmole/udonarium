@@ -45,12 +45,16 @@ export class UIPanelComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() set top(top: number) { this.panelService.top = top; }
   @Input() set width(width: number) { this.panelService.width = width; }
   @Input() set height(height: number) { this.panelService.height = height; }
+  @Input() set root(isRoot: boolean) { this.isRoot = isRoot; }
 
   get title(): string { return this.panelService.title; }
   get left() { return this.panelService.left; }
   get top() { return this.panelService.top; }
   get width() { return this.panelService.width; }
   get height() { return this.panelService.height; }
+  get root() { return this.isRoot; }
+
+  private isRoot: boolean = false;
 
   private preLeft: number = 0
   private preTop: number = 0;

@@ -1,6 +1,6 @@
     <div [@flyInOut]="'in'" [ngClass]="{'pointer-events-none': isPointerDragging}" class="draggable-panel" [style.left.px]="left" [style.top.px]="top" [style.width.px]="width" [style.height.px]="height" #draggablePanel>
       <div class="title">
-        <div class="title-button">
+        <div class="title-button" *ngIf="!root">
           <button (click)="toggleFullScreen()"><i class="material-icons" style="font-size: 14px;">fullscreen</i></button>
           <button (click)="close()"><i class="material-icons" style="font-size: 14px;">close</i></button>
         </div>
