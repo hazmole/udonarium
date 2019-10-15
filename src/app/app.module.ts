@@ -14,6 +14,8 @@ import { ChatTabSettingComponent } from 'component/chat-tab-setting/chat-tab-set
 import { ChatTabComponent } from 'component/chat-tab/chat-tab.component';
 import { ChatWindowComponent } from 'component/chat-window/chat-window.component';
 import { ContextMenuComponent } from 'component/context-menu/context-menu.component';
+import { CutInManagerComponent } from 'component/cut-in-manager/cut-in-manager.component';
+import { CutInViewComponent } from 'component/cut-in-view/cut-in-view.component';
 import { DiceSymbolComponent } from 'component/dice-symbol/dice-symbol.component';
 import { FileSelecterComponent } from 'component/file-selecter/file-selecter.component';
 import { FileStorageComponent } from 'component/file-storage/file-storage.component';
@@ -68,6 +70,8 @@ import { AppComponent } from './app.component';
     ChatTabSettingComponent,
     ChatWindowComponent,
     ContextMenuComponent,
+    CutInManagerComponent,
+    CutInViewComponent,
     FileSelecterComponent,
     FileStorageComponent,
     GameCharacterGeneratorComponent,
@@ -125,6 +129,8 @@ import { AppComponent } from './app.component';
     ChatTabSettingComponent,
     ChatWindowComponent,
     ContextMenuComponent,
+    CutInViewComponent,
+    CutInManagerComponent,
     GameTableSettingComponent,
     FileSelecterComponent,
     FileStorageComponent,

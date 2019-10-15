@@ -85,6 +85,12 @@
           <div>角色生成器</div>
         </a>
       </li>
+      <li (click)="open('CutInManagerComponent')" *ngIf="!networkService.isSelfWatchMode()">
+        <a routerLink="/" routerLinkActive="active">
+          <div><i class="material-icons icon-size">local_movies</i></div>
+          <div>Cut in</div>
+        </a>
+      </li>
     </ul>
   </nav>
 </ui-panel>

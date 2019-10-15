@@ -1,0 +1,32 @@
+<div class="flex-container" *ngIf=!isWatchMode()>
+	<div class="flex-item no-grow">
+		<div>
+			<button (click)="createCutIn()">創建新的Cut-in</button>
+		</div>
+		<select style="width: 10em;" size="10" (change)="selectCutIn($event.target.value)" [ngModel]="selectedCutIn?.identifier">
+	      <option *ngFor="let cutIn of getCutIns()" value="{{cutIn.identifier}}">{{cutIn.name}}</option>
+	    </select>
+	</div>
+  	<div class="flex-item">
+  		你可以在這裡新增並管理你的cut-in
+  		<hr>
+  		<div *ngIf="selectedCutIn==null">請先新增一個cut-in</div>
+  		<div *ngIf="selectedCutIn!=null">
+		  	<div>
+		  		<div *ngIf="isSelectEmptyImage()">
+			  		<button (click)="openModal()" style="width:120px; height:120px;">選擇圖像</button>
+			  	</div>
+			  	<div *ngIf="!isSelectEmptyImage()" style="width:120px; height:120px;">
+					<img class="image-selector" height="120" [src]="selectedCutIn.imageIdentifier | safe: 'resourceUrl'" (click)="openModal()" title="選擇圖像">
+				</div>
+			</div>
+			<div>名稱：<input [(ngModel)]="selectedCutIn.name" placeholder="Name" />
+			</div>
+			<div>句末啟動?：<input [(ngModel)]="selectedCutIn.triggerString" placeholder="(空白則為不啟動)" />
+			</div>
+			<div><button (click)="displayCutIn()" >顯示給全體</button>
+			</div>
+		</div>
+	</div>
+
+</div>
