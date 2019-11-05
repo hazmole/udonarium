@@ -1,6 +1,6 @@
 import { Component, NgZone, OnDestroy, OnInit } from '@angular/core';
 
-import { AudioFile } from '@udonarium/core/file-storage/audio-file';
+import { AudioFileContext, AudioFile } from '@udonarium/core/file-storage/audio-file';
 import { AudioPlayer, VolumeType } from '@udonarium/core/file-storage/audio-player';
 import { AudioStorage } from '@udonarium/core/file-storage/audio-storage';
 import { FileArchiver } from '@udonarium/core/file-storage/file-archiver';
@@ -17,6 +17,8 @@ import { PanelService } from 'service/panel.service';
   styleUrls: ['./jukebox.component.css']
 })
 export class JukeboxComponent implements OnInit, OnDestroy {
+
+  uploadMusicUrl: string = "";
 
   get volume(): number { return AudioPlayer.volume; }
   set volume(volume: number) { AudioPlayer.volume = volume; }
@@ -77,6 +79,19 @@ export class JukeboxComponent implements OnInit, OnDestroy {
       this.lazyUpdateTimer = null;
       this.ngZone.run(() => { });
     }, 100);
+  }
+
+  uploadByUrl() {
+    let music_url = this.uploadMusicUrl;
+
+    let testFile: AudioFile = null;
+    let fileContext: AudioFileContext = null;
+    fileContext = AudioFile.createEmpty(this.uploadMusicUrl).toContext();
+    fileContext.url = this.uploadMusicUrl;
+    fileContext.name = this.uploadMusicUrl;
+    testFile = AudioStorage.instance.add(fileContext);
+    
+    this.uploadMusicUrl = "";
   }
 
   isWatchMode(): boolean { return Network.isSelfWatchMode(); }

@@ -17,7 +17,6 @@
   </div>
   <div *ngIf="audios.length < 1" >你可以在這裡閱覽你上傳的音樂檔。</div>
 </div>
-
 <label>
   <div class="drop-zone">
     <div>
@@ -30,6 +29,9 @@
       <br>１份檔案最多10MB</div>
   </div>
 </label>
+<div>
+  或使用外部連結：<input type="text" [(ngModel)]="uploadMusicUrl" placeholder="音樂網址"> <button (click)="uploadByUrl()">上傳</button>
+</div>
 <div style="font-size: 12px;">※「試聴」只會播放給自己一次。</div>
 <div style="font-size: 12px;">※「BGM」會將該音樂循環播放給房間內的所有成員。</div>
 <div style="font-size: 12px;">※現行版本的房間存檔（zip）並不包含音樂檔。（必須每次重新上傳）</div>
