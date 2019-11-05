@@ -2,7 +2,6 @@ import { AfterViewInit, Directive, ElementRef, EventEmitter, Input, NgZone, OnDe
 
 import { Network, EventSystem } from '@udonarium/core/system';
 import { ObjectStore } from '@udonarium/core/synchronize-object/object-store';
-import { EventSystem } from '@udonarium/core/system';
 import { TableSelecter } from '@udonarium/table-selecter';
 import { TabletopObject } from '@udonarium/tabletop-object';
 import { PointerCoordinate, PointerDeviceService } from 'service/pointer-device.service';
