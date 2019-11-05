@@ -1,5 +1,4 @@
 import { AfterViewInit, Component, ElementRef, HostListener, Input, OnDestroy, OnInit, ViewChild } from '@angular/core';
-
 import { ContextMenuAction, ContextMenuService } from 'service/context-menu.service';
 
 @Component({
@@ -8,7 +7,7 @@ import { ContextMenuAction, ContextMenuService } from 'service/context-menu.serv
   styleUrls: ['./context-menu.component.css']
 })
 export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
-  @ViewChild('root', { static: true }) rootElementRef: ElementRef;
+  @ViewChild('root', { static: true }) rootElementRef: ElementRef<HTMLElement>;
 
   @Input() title: string = '';
   @Input() actions: ContextMenuAction[] = [];
@@ -24,7 +23,7 @@ export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
   private callbackOnOutsideClick = (e) => this.onOutsideClick(e);
 
   constructor(
-    private elementRef: ElementRef,
+    private elementRef: ElementRef<HTMLElement>,
     public contextMenuService: ContextMenuService
   ) { }
 
@@ -37,8 +36,8 @@ export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngAfterViewInit() {
     if (!this.isSubmenu) {
-      this.setForeground();
       this.adjustPositionRoot();
+      document.addEventListener('touchstart', this.callbackOnOutsideClick, false);
       document.addEventListener('mousedown', this.callbackOnOutsideClick, false);
     } else {
       this.adjustPositionSub();
@@ -46,11 +45,12 @@ export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   ngOnDestroy() {
+    document.removeEventListener('touchstart', this.callbackOnOutsideClick, false);
     document.removeEventListener('mousedown', this.callbackOnOutsideClick, false);
   }
 
   onOutsideClick(event) {
-    if (!$(event.target).closest($(this.rootElementRef.nativeElement)).length) {
+    if (this.rootElementRef.nativeElement.contains(event.target) === false) {
       this.close();
     }
   }
@@ -61,68 +61,62 @@ export class ContextMenuComponent implements OnInit, OnDestroy, AfterViewInit {
     e.preventDefault();
   }
 
-  private setForeground() {
-    let $stacks: JQuery = $('.draggable-panel')
-    let topZIndex: number = 9900;
-    let bottomZindex: number = 99999;
-    $stacks.each(function () {
-      let zIndex = parseInt($(this).css('zIndex'));
-      if (topZIndex < zIndex) topZIndex = zIndex;
-      if (zIndex < bottomZindex) bottomZindex = zIndex;
-    });
-    $stacks.each(function () {
-      $(this).css('zIndex', parseInt($(this).css('zIndex')) - bottomZindex);
-    });
-    $(this.rootElementRef.nativeElement).css('zIndex', topZIndex + 1);
-  }
-
   private adjustPositionRoot() {
-    let $panel = $(this.rootElementRef.nativeElement);
+    let panel: HTMLElement = this.rootElementRef.nativeElement;
 
-    $panel.offset({ left: this.contextMenuService.position.x, top: this.contextMenuService.position.y });
+    panel.style.left = this.contextMenuService.position.x + 'px';
+    panel.style.top = this.contextMenuService.position.y + 'px';
 
-    let offsetLeft = $panel.offset().left;
-    let offsetTop = $panel.offset().top;
+    let panelBox = panel.getBoundingClientRect();
 
-    if (window.innerWidth < offsetLeft + $panel.outerWidth()) {
-      offsetLeft -= (offsetLeft + $panel.outerWidth()) - window.innerWidth;
+    let diffLeft = 0;
+    let diffTop = 0;
+
+    if (window.innerWidth < panelBox.right + diffLeft) {
+      diffLeft += window.innerWidth - (panelBox.right + diffLeft);
     }
-    if (window.innerHeight < offsetTop + $panel.outerHeight()) {
-      offsetTop -= (offsetTop + $panel.outerHeight()) - window.innerHeight;
-    }
-
-    if (offsetLeft < 0) {
-      offsetLeft = 0;
-    }
-    if (offsetTop < 0) {
-      offsetTop = 0;
+    if (panelBox.left + diffLeft < 0) {
+      diffLeft += 0 - (panelBox.left + diffLeft);
     }
 
-    $panel.offset({ left: offsetLeft, top: offsetTop });
+    if (window.innerHeight < panelBox.bottom + diffTop) {
+      diffTop += window.innerHeight - (panelBox.bottom + diffTop);
+    }
+    if (panelBox.top + diffTop < 0) {
+      diffTop += 0 - (panelBox.top + diffTop);
+    }
+
+    panel.style.left = panel.offsetLeft + diffLeft + 'px';
+    panel.style.top = panel.offsetTop + diffTop + 'px';
   }
 
   private adjustPositionSub() {
-    let $parent = $(this.elementRef.nativeElement.parentElement);
-    let $submenu = $(this.rootElementRef.nativeElement);
-    let offsetLeft = $submenu.offset().left;
-    let offsetTop = $submenu.offset().top;
+    let parent: HTMLElement = this.elementRef.nativeElement.parentElement;
+    let submenu: HTMLElement = this.rootElementRef.nativeElement;
 
-    if (window.innerWidth < offsetLeft + $submenu.outerWidth()) {
-      offsetLeft -= (offsetLeft + $submenu.outerWidth()) - $parent.offset().left;
-      offsetLeft += 8;
-    }
-    if (window.innerHeight < offsetTop + $submenu.outerHeight()) {
-      offsetTop -= (offsetTop + $submenu.outerHeight()) - window.innerHeight;
-    }
+    let parentBox = parent.getBoundingClientRect();
+    let submenuBox = submenu.getBoundingClientRect();
 
-    if (offsetLeft < 0) {
-      offsetLeft = 0;
+    let diffLeft = 0;
+    let diffTop = 0;
+
+    if (window.innerWidth < submenuBox.right + diffLeft) {
+      diffLeft -= parentBox.width + submenuBox.width;
+      diffLeft += 8;
     }
-    if (offsetTop < 0) {
-      offsetTop = 0;
+    if (submenuBox.left + diffLeft < 0) {
+      diffLeft += 0 - (submenuBox.left + diffLeft);
     }
 
-    $submenu.offset({ left: offsetLeft, top: offsetTop });
+    if (window.innerHeight < submenuBox.bottom + diffTop) {
+      diffTop += window.innerHeight - (submenuBox.bottom + diffTop);
+    }
+    if (submenuBox.top + diffTop < 0) {
+      diffTop += 0 - (submenuBox.top + diffTop);
+    }
+
+    submenu.style.left = submenu.offsetLeft + diffLeft + 'px';
+    submenu.style.top = submenu.offsetTop + diffTop + 'px';
   }
 
   doAction(action: ContextMenuAction) {

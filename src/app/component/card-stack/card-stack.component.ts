@@ -7,6 +7,7 @@ import {
   ElementRef,
   HostListener,
   Input,
+  NgZone,
   OnDestroy,
   OnInit,
 } from '@angular/core';
@@ -20,6 +21,7 @@ import { PeerCursor } from '@udonarium/peer-cursor';
 import { PresetSound, SoundEffect } from '@udonarium/sound-effect';
 import { CardStackListComponent } from 'component/card-stack-list/card-stack-list.component';
 import { GameCharacterSheetComponent } from 'component/game-character-sheet/game-character-sheet.component';
+import { InputHandler } from 'directive/input-handler';
 import { MovableOption } from 'directive/movable.directive';
 import { RotableOption } from 'directive/rotable.directive';
 import { ContextMenuSeparator, ContextMenuService } from 'service/context-menu.service';
@@ -70,8 +72,6 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
 
   animeState: string = 'inactive';
 
-  private callbackOnMouseUp = (e) => this.onMouseUp(e);
-
   private iconHiddenTimer: NodeJS.Timer = null;
   get isIconHidden(): boolean { return this.iconHiddenTimer != null };
 
@@ -83,10 +83,13 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
   private doubleClickTimer: NodeJS.Timer = null;
   private doubleClickPoint = { x: 0, y: 0 };
 
+  private input: InputHandler = null;
+
   constructor(
+    private ngZone: NgZone,
     private contextMenuService: ContextMenuService,
     private panelService: PanelService,
-    private elementRef: ElementRef,
+    private elementRef: ElementRef<HTMLElement>,
     private changeDetector: ChangeDetectorRef,
     private pointerDeviceService: PointerDeviceService
   ) { }
@@ -113,6 +116,9 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
       })
       .on('UPDATE_FILE_RESOURE', -1000, event => {
         this.changeDetector.markForCheck();
+      })
+      .on('DISCONNECT_PEER', event => {
+        if (this.cardStack.owner === event.data.peer) this.changeDetector.markForCheck();
       });
     this.movableOption = {
       tabletopObject: this.cardStack,
@@ -124,11 +130,14 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
     };
   }
 
-  ngAfterViewInit() { }
+  ngAfterViewInit() {
+    this.input = new InputHandler(this.elementRef.nativeElement);
+    this.input.onStart = this.onInputStart.bind(this);
+  }
 
   ngOnDestroy() {
+    this.input.destroy();
     EventSystem.unregister(this);
-    this.removeMouseEventListeners();
   }
 
   animationShuffleStarted(event: any) {
@@ -165,14 +174,14 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
       this.doubleClickTimer = setTimeout(() => {
         clearTimeout(this.doubleClickTimer);
         this.doubleClickTimer = null;
-      }, 400);
-      this.doubleClickPoint = this.pointerDeviceService.pointers[0];
+      }, 300);
+      this.doubleClickPoint = this.input.pointer;
       return;
     }
     clearTimeout(this.doubleClickTimer);
     this.doubleClickTimer = null;
-    if (this.doubleClickPoint.x === this.pointerDeviceService.pointers[0].x
-      && this.doubleClickPoint.y === this.pointerDeviceService.pointers[0].y) {
+    let distance = (this.doubleClickPoint.x - this.input.pointer.x) ** 2 + (this.doubleClickPoint.y - this.input.pointer.y) ** 2;
+    if (distance < 10 ** 2) {
       console.log('onDoubleClick !!!!');
       if (this.drawCard() != null) {
         SoundEffect.play(PresetSound.cardDraw);
@@ -186,30 +195,20 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
     e.preventDefault();
   }
 
-  @HostListener('mousedown', ['$event'])
-  onMouseDown(e: any) {
+  onInputStart(e: MouseEvent | TouchEvent) {
+    this.input.cancel();
     this.cardStack.toTopmost();
     this.onDoubleClick(e);
 
-    this.addMouseEventListeners();
-    this.startIconHiddenTimer();
+    if (e instanceof MouseEvent) this.startIconHiddenTimer();
 
     EventSystem.trigger('SELECT_TABLETOP_OBJECT', { identifier: this.cardStack.identifier, className: 'GameCharacter' });
-
-    e.preventDefault();
-  }
-
-  onMouseUp(e: any) {
-    this.removeMouseEventListeners();
-    this.dispatchCardDropEvent();
-    e.preventDefault();
   }
 
   @HostListener('contextmenu', ['$event'])
   onContextMenu(e: Event) {
     e.stopPropagation();
     e.preventDefault();
-    this.removeMouseEventListeners();
 
     if (!this.pointerDeviceService.isAllowedToOpenContextMenu) return;
     if (Network.isSelfWatchMode()) return;
@@ -310,6 +309,7 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
 
   onMoved() {
     SoundEffect.play(PresetSound.cardPut);
+    this.ngZone.run(() => this.dispatchCardDropEvent());
   }
 
   private drawCard(): Card {
@@ -394,14 +394,6 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
     }
   }
 
-  private addMouseEventListeners() {
-    document.body.addEventListener('mouseup', this.callbackOnMouseUp, false);
-  }
-
-  private removeMouseEventListeners() {
-    document.body.removeEventListener('mouseup', this.callbackOnMouseUp, false);
-  }
-
   private showDetail(gameObject: CardStack) {
     EventSystem.trigger('SELECT_TABLETOP_OBJECT', { identifier: gameObject.identifier, className: gameObject.aliasName });
     let coordinate = this.pointerDeviceService.pointers[0];
@@ -428,7 +420,7 @@ export class CardStackComponent implements OnInit, AfterViewInit, OnDestroy {
     this.iconHiddenTimer = setTimeout(() => {
       this.iconHiddenTimer = null;
       this.changeDetector.markForCheck();
-    }, 400);
+    }, 300);
     this.changeDetector.markForCheck();
   }
 }

@@ -99,7 +99,7 @@ export class FileArchiver {
     if (file.type.indexOf('audio/') < 0) return;
     console.log(file.name + ' type:' + file.type);
     if (10 * 1024 * 1024 < file.size) return;
-    let audio = await AudioStorage.instance.addAsync(file);
+    await AudioStorage.instance.addAsync(file);
   }
 
   private async handleText(file: File): Promise<void> {
@@ -122,7 +122,9 @@ export class FileArchiver {
       console.warn(reason);
       return;
     }
-    zip.forEach(async (relativePath, zipEntry) => {
+    let zipEntrys = [];
+    zip.forEach((relativePath, zipEntry) => zipEntrys.push(zipEntry));
+    for (let zipEntry of zipEntrys) {
       try {
         let arraybuffer = await zipEntry.async('arraybuffer');
         console.log(zipEntry.name + ' 解凍...', arraybuffer);
@@ -130,7 +132,7 @@ export class FileArchiver {
       } catch (reason) {
         console.warn(reason);
       }
-    });
+    }
   }
 
   save(files: File[], zipName: string)
